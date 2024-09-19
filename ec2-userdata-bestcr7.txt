@@ -1,0 +1,74 @@
+#!/bin/bash
+
+# Run as root
+sudo su
+
+# Update package lists and install required packages
+sudo apt update -y
+sudo apt install -y git python3 python3-pip python3-venv
+
+# Create a directory for the Streamlit app
+mkdir -p /home/ubuntu/streamlit_app
+
+# Navigate to the Streamlit app folder
+cd /home/ubuntu/streamlit_app
+
+# Create a Python virtual environment
+python3 -m venv streamlit-env
+
+# Activate the virtual environment
+source /home/ubuntu/streamlit_app/streamlit-env/bin/activate
+
+# Install Streamlit and Matplotlib within the virtual environment
+pip install --no-cache-dir streamlit matplotlib
+
+# Clone the Streamlit app from your GitHub repository
+# git clone https://github.com/aamir490/streamlit-app-campusx.git /home/ubuntu/streamlit_app/streamlit-app-campus
+git clone https://github.com/aamir490/streamlit-ip-server-cr7.git /home/ubuntu/streamlit_app/streamlit-ip-server-cr7
+
+# Optional: Sleep for a few seconds to ensure everything is set up
+sleep 5
+
+# Create a script to run the Streamlit application
+cat << 'EOF' > /home/ubuntu/streamlit_app/run_streamlit.sh
+#!/bin/bash
+# Activate the virtual environment
+source /home/ubuntu/streamlit_app/streamlit-env/bin/activate
+
+# Optional: Sleep to ensure all dependencies are loaded
+sleep 5
+
+# Start the Streamlit application
+exec /home/ubuntu/streamlit_app/streamlit-env/bin/streamlit run best-cr7.py --server.port=8501 --server.headless=true
+EOF
+
+# Make the run script executable
+chmod +x /home/ubuntu/streamlit_app/run_streamlit.sh
+
+# Create a systemd service for Streamlit
+cat << EOF > /etc/systemd/system/streamlit.service
+[Unit]
+Description=Streamlit Application
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/streamlit_app/streamlit-ip-server-cr7
+ExecStart=/home/ubuntu/streamlit_app/run_streamlit.sh
+Restart=always
+Environment=STREAMLIT_HOME=/home/ubuntu/streamlit_app
+Environment=STREAMLIT_PORT=8501
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Reload systemd to recognize the new service
+systemctl daemon-reload
+
+# Start and enable the Streamlit service
+systemctl start streamlit.service
+systemctl enable streamlit.service
+
+# Optional: Check the status of the service
+systemctl status streamlit.service > /home/ubuntu/streamlit_app/service_status.log 2>&1
